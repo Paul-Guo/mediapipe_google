@@ -9,7 +9,7 @@ exports_files(["LICENSE"])
 
 # The path to OpenCV is a combination of the path set for "macos_opencv"
 # in the WORKSPACE file and the prefix here.
-PREFIX = "include"
+PREFIX = ""
 
 cc_library(
     name = "opencv",
@@ -25,8 +25,8 @@ cc_library(
             paths.join(PREFIX, "lib/libopencv_videoio.dylib"),
         ],
     ),
-    hdrs = glob([paths.join(PREFIX, "opencv4/opencv2/**/*.h*")]),
-    includes = [paths.join(PREFIX, "opencv4/")],
+    hdrs = glob([paths.join(PREFIX, "include/opencv4/opencv2/**/*.h*")]),
+    includes = [paths.join(PREFIX, "include/opencv4/")],
     linkstatic = 1,
     visibility = ["//visibility:public"],
 )
