@@ -4,7 +4,6 @@ type: "IrisAndDepthRendererGpu"
 
 input_stream: "IMAGE:input_image"
 input_stream: "DETECTIONS:detections"
-input_stream: "FACE_LANDMARKS:face_landmarks"
 input_stream: "EYE_LANDMARKS_LEFT:all_left_eye_contour_landmarks"
 input_stream: "EYE_LANDMARKS_RIGHT:all_right_eye_contour_landmarks"
 input_stream: "IRIS_LANDMARKS_LEFT:left_iris_landmarks"
@@ -44,21 +43,6 @@ node {
   input_stream: "left_iris_landmarks"
   input_stream: "right_iris_landmarks"
   output_stream: "iris_landmarks"
-}
-
-# Converts landmarks to drawing primitives for annotation overlay.
-node {
-  calculator: "FaceLandmarksToRenderDataCalculator"
-  input_stream: "NORM_LANDMARKS:face_landmarks"
-  output_stream: "RENDER_DATA:face_landmarks_render_data"
-  node_options: {
-    [type.googleapis.com/mediapipe.LandmarksToRenderDataCalculatorOptions] {
-      landmark_color { r: 150 g: 0 b: 0 }
-      connection_color { r: 0 g: 150 b: 0 }
-      thickness: 2
-      visualize_landmark_depth: false
-    }
-  }
 }
 
 node {
@@ -257,7 +241,6 @@ node {
   calculator: "AnnotationOverlayCalculator"
   input_stream: "IMAGE_GPU:input_image"
   input_stream: "detection_render_data"
-  input_stream: "face_landmarks_render_data"
   input_stream: "right_eye_contour_landmarks_render_data"
   input_stream: "left_eye_contour_landmarks_render_data"
   input_stream: "iris_render_data"
