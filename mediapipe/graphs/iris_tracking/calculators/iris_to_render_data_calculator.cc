@@ -222,6 +222,28 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
       const auto& plu_n_l = update_face_landmarks.landmark(133);
       const auto& plu_t_l = update_face_landmarks.landmark(33);
 
+      // draw 4 eye points
+      auto* landmark_data_render = AddPointRenderData(options, render_data.get());
+      auto* landmark_data = landmark_data_render->mutable_point();
+      landmark_data->set_normalized(true);
+      landmark_data->set_x(plu_t_r.x());
+      landmark_data->set_y(plu_t_r.y());
+      landmark_data_render = AddPointRenderData(options, render_data.get());
+      landmark_data = landmark_data_render->mutable_point();
+      landmark_data->set_normalized(true);
+      landmark_data->set_x(plu_n_r.x());
+      landmark_data->set_y(plu_n_r.y());
+      landmark_data_render = AddPointRenderData(options, render_data.get());
+      landmark_data = landmark_data_render->mutable_point();
+      landmark_data->set_normalized(true);
+      landmark_data->set_x(plu_n_l.x());
+      landmark_data->set_y(plu_n_l.y());
+      landmark_data_render = AddPointRenderData(options, render_data.get());
+      landmark_data = landmark_data_render->mutable_point();
+      landmark_data->set_normalized(true);
+      landmark_data->set_x(plu_t_l.x());
+      landmark_data->set_y(plu_t_l.y());
+
       // iris plu size
       auto plu_iris_size = left_iris_size;
       if (plu_iris_size < right_iris_size) {
@@ -232,6 +254,30 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
         plu_iris_size = plu_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_left_iris_size = left_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_right_iris_size = right_iris_size * plu_adjust_iris_size_ratio;
+
+        const auto plu_dt_a_r_b_x = std::sqrt((plu_t_r.x() - plu_n_r.x()) * (plu_t_r.x() - plu_n_r.x())) * image_size.first;
+        const auto plu_dt_a_r_b_y = std::sqrt((plu_t_r.y() - plu_n_r.y()) * (plu_t_r.y() - plu_n_r.y())) * image_size.second;
+        const auto plu_dt_a_r_b = std::sqrt(plu_dt_a_r_b_x * plu_dt_a_r_b_x + plu_dt_a_r_b_y * plu_dt_a_r_b_y);
+        
+        const auto plu_dt_a_l_b_x = std::sqrt((plu_t_l.x() - plu_n_l.x()) * (plu_t_l.x() - plu_n_l.x())) * image_size.first;
+        const auto plu_dt_a_l_b_y = std::sqrt((plu_t_l.y() - plu_n_l.y()) * (plu_t_l.y() - plu_n_l.y())) * image_size.second;
+        const auto plu_dt_a_l_b = std::sqrt(plu_dt_a_l_b_x * plu_dt_a_l_b_x + plu_dt_a_l_b_y * plu_dt_a_l_b_y);
+        
+        const auto plu_dt_t_r_b_x = std::sqrt((plu_t_r.x() - plu_c_r.x()) * (plu_t_r.x() - plu_c_r.x())) * image_size.first;
+        const auto plu_dt_t_r_b_y = std::sqrt((plu_t_r.y() - plu_c_r.y()) * (plu_t_r.y() - plu_c_r.y())) * image_size.second;
+        const auto plu_dt_t_r_b = std::sqrt(plu_dt_t_r_b_x * plu_dt_t_r_b_x + plu_dt_t_r_b_y * plu_dt_t_r_b_y);
+        
+        const auto plu_dt_t_l_b_x = std::sqrt((plu_t_l.x() - plu_c_l.x()) * (plu_t_l.x() - plu_c_l.x())) * image_size.first;
+        const auto plu_dt_t_l_b_y = std::sqrt((plu_t_l.y() - plu_c_l.y()) * (plu_t_l.y() - plu_c_l.y())) * image_size.second;
+        const auto plu_dt_t_l_b = std::sqrt(plu_dt_t_l_b_x * plu_dt_t_l_b_x + plu_dt_t_l_b_y * plu_dt_t_l_b_y);
+        
+        const auto plu_dt_n_r_b_x = std::sqrt((plu_n_r.x() - plu_c_r.x()) * (plu_n_r.x() - plu_c_r.x())) * image_size.first;
+        const auto plu_dt_n_r_b_y = std::sqrt((plu_n_r.y() - plu_c_r.y()) * (plu_n_r.y() - plu_c_r.y())) * image_size.second;
+        const auto plu_dt_n_r_b = std::sqrt(plu_dt_n_r_b_x * plu_dt_n_r_b_x + plu_dt_n_r_b_y * plu_dt_n_r_b_y);
+        
+        const auto plu_dt_n_l_b_x = std::sqrt((plu_n_l.x() - plu_c_l.x()) * (plu_n_l.x() - plu_c_l.x())) * image_size.first;
+        const auto plu_dt_n_l_b_y = std::sqrt((plu_n_l.y() - plu_c_l.y()) * (plu_n_l.y() - plu_c_l.y())) * image_size.second;
+        const auto plu_dt_n_l_b = std::sqrt(plu_dt_n_l_b_x * plu_dt_n_l_b_x + plu_dt_n_l_b_y * plu_dt_n_l_b_y);
 
         // left
         line = "";
