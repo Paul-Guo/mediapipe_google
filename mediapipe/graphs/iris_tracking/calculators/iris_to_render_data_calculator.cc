@@ -39,6 +39,8 @@ constexpr float kFontHeightScale = 1.5f;
 constexpr int kNumIrisLandmarksPerEye = 5;
 // TODO: Source.
 constexpr float kIrisSizeInMM = 11.8;
+constexpr float kDeltaAdjustInMM = 4;
+constexpr float kDeltaStrabismusThresholdInMM = 6;
 
 inline void SetColor(RenderAnnotation* annotation, const Color& color) {
   annotation->mutable_color()->set_r(color.r());
@@ -129,6 +131,43 @@ class IrisToRenderDataCalculator : public CalculatorBase {
   absl::Status Process(CalculatorContext* cc) override;
 
  private:
+
+  float last_plu_dt_a_r_x = -1.f;
+  float last_plu_dt_a_r_y = -1.f;
+  float last_plu_dt_a_r = -1.f;
+  
+  float last_plu_dt_a_l_x = -1.f;
+  float last_plu_dt_a_l_y = -1.f;
+  float last_plu_dt_a_l = -1.f;
+  
+  float last_plu_dt_t_r_x = -1.f;
+  float last_plu_dt_t_r_y = -1.f;
+  float last_plu_dt_t_r = -1.f;
+  
+  float last_plu_dt_t_l_x = -1.f;
+  float last_plu_dt_t_l_y = -1.f;
+  float last_plu_dt_t_l = -1.f;
+  
+  float last_plu_dt_n_r_x = -1.f;
+  float last_plu_dt_n_r_y = -1.f;
+  float last_plu_dt_n_r = -1.f;
+  
+  float last_plu_dt_n_l_x = -1.f;
+  float last_plu_dt_n_l_y = -1.f;
+  float last_plu_dt_n_l = -1.f;
+
+  int warn_delta_plu_r_x_count = 0;
+  int warn_delta_plu_l_x_count = 0;
+  int warn_delta_plu_r_y_count = 0;
+  int warn_delta_plu_l_y_count = 0;
+  int warn_delta_plu_r_count = 0;
+  int warn_delta_plu_l_count = 0;
+
+  int warn_delta_plu_x_count = 0;
+  int warn_delta_plu_y_count = 0;
+  int warn_delta_plu_count = 0;
+
+
   void RenderIris(const NormalizedLandmarkList& iris_landmarks,
                   const IrisToRenderDataCalculatorOptions& options,
                   const std::pair<int, int>& image_size, float iris_size,
@@ -254,44 +293,162 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
         plu_iris_size = plu_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_left_iris_size = left_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_right_iris_size = right_iris_size * plu_adjust_iris_size_ratio;
+        const auto image_size_x = image_size.first;
+        const auto image_size_y = image_size.second;
 
-        const auto plu_dt_a_r_b_x = std::sqrt((plu_t_r.x() - plu_n_r.x()) * (plu_t_r.x() - plu_n_r.x())) * image_size.first;
-        const auto plu_dt_a_r_b_y = std::sqrt((plu_t_r.y() - plu_n_r.y()) * (plu_t_r.y() - plu_n_r.y())) * image_size.second;
-        const auto plu_dt_a_r_b = std::sqrt(plu_dt_a_r_b_x * plu_dt_a_r_b_x + plu_dt_a_r_b_y * plu_dt_a_r_b_y);
+        const auto plu_dt_a_r_x = std::sqrt((plu_t_r.x() - plu_n_r.x()) * (plu_t_r.x() - plu_n_r.x())) * image_size_x;
+        const auto plu_dt_a_r_y = std::sqrt((plu_t_r.y() - plu_n_r.y()) * (plu_t_r.y() - plu_n_r.y())) * image_size_y;
+        const auto plu_dt_a_r = std::sqrt(plu_dt_a_r_x * plu_dt_a_r_x + plu_dt_a_r_y * plu_dt_a_r_y);
         
-        const auto plu_dt_a_l_b_x = std::sqrt((plu_t_l.x() - plu_n_l.x()) * (plu_t_l.x() - plu_n_l.x())) * image_size.first;
-        const auto plu_dt_a_l_b_y = std::sqrt((plu_t_l.y() - plu_n_l.y()) * (plu_t_l.y() - plu_n_l.y())) * image_size.second;
-        const auto plu_dt_a_l_b = std::sqrt(plu_dt_a_l_b_x * plu_dt_a_l_b_x + plu_dt_a_l_b_y * plu_dt_a_l_b_y);
+        const auto plu_dt_a_l_x = std::sqrt((plu_t_l.x() - plu_n_l.x()) * (plu_t_l.x() - plu_n_l.x())) * image_size_x;
+        const auto plu_dt_a_l_y = std::sqrt((plu_t_l.y() - plu_n_l.y()) * (plu_t_l.y() - plu_n_l.y())) * image_size_y;
+        const auto plu_dt_a_l = std::sqrt(plu_dt_a_l_x * plu_dt_a_l_x + plu_dt_a_l_y * plu_dt_a_l_y);
         
-        const auto plu_dt_t_r_b_x = std::sqrt((plu_t_r.x() - plu_c_r.x()) * (plu_t_r.x() - plu_c_r.x())) * image_size.first;
-        const auto plu_dt_t_r_b_y = std::sqrt((plu_t_r.y() - plu_c_r.y()) * (plu_t_r.y() - plu_c_r.y())) * image_size.second;
-        const auto plu_dt_t_r_b = std::sqrt(plu_dt_t_r_b_x * plu_dt_t_r_b_x + plu_dt_t_r_b_y * plu_dt_t_r_b_y);
+        const auto plu_dt_t_r_x = std::sqrt((plu_t_r.x() - plu_c_r.x()) * (plu_t_r.x() - plu_c_r.x())) * image_size_x;
+        const auto plu_dt_t_r_y = std::sqrt((plu_t_r.y() - plu_c_r.y()) * (plu_t_r.y() - plu_c_r.y())) * image_size_y;
+        const auto plu_dt_t_r = std::sqrt(plu_dt_t_r_x * plu_dt_t_r_x + plu_dt_t_r_y * plu_dt_t_r_y);
         
-        const auto plu_dt_t_l_b_x = std::sqrt((plu_t_l.x() - plu_c_l.x()) * (plu_t_l.x() - plu_c_l.x())) * image_size.first;
-        const auto plu_dt_t_l_b_y = std::sqrt((plu_t_l.y() - plu_c_l.y()) * (plu_t_l.y() - plu_c_l.y())) * image_size.second;
-        const auto plu_dt_t_l_b = std::sqrt(plu_dt_t_l_b_x * plu_dt_t_l_b_x + plu_dt_t_l_b_y * plu_dt_t_l_b_y);
+        const auto plu_dt_t_l_x = std::sqrt((plu_t_l.x() - plu_c_l.x()) * (plu_t_l.x() - plu_c_l.x())) * image_size_x;
+        const auto plu_dt_t_l_y = std::sqrt((plu_t_l.y() - plu_c_l.y()) * (plu_t_l.y() - plu_c_l.y())) * image_size_y;
+        const auto plu_dt_t_l = std::sqrt(plu_dt_t_l_x * plu_dt_t_l_x + plu_dt_t_l_y * plu_dt_t_l_y);
         
-        const auto plu_dt_n_r_b_x = std::sqrt((plu_n_r.x() - plu_c_r.x()) * (plu_n_r.x() - plu_c_r.x())) * image_size.first;
-        const auto plu_dt_n_r_b_y = std::sqrt((plu_n_r.y() - plu_c_r.y()) * (plu_n_r.y() - plu_c_r.y())) * image_size.second;
-        const auto plu_dt_n_r_b = std::sqrt(plu_dt_n_r_b_x * plu_dt_n_r_b_x + plu_dt_n_r_b_y * plu_dt_n_r_b_y);
+        const auto plu_dt_n_r_x = std::sqrt((plu_n_r.x() - plu_c_r.x()) * (plu_n_r.x() - plu_c_r.x())) * image_size_x;
+        const auto plu_dt_n_r_y = std::sqrt((plu_n_r.y() - plu_c_r.y()) * (plu_n_r.y() - plu_c_r.y())) * image_size_y;
+        const auto plu_dt_n_r = std::sqrt(plu_dt_n_r_x * plu_dt_n_r_x + plu_dt_n_r_y * plu_dt_n_r_y);
         
-        const auto plu_dt_n_l_b_x = std::sqrt((plu_n_l.x() - plu_c_l.x()) * (plu_n_l.x() - plu_c_l.x())) * image_size.first;
-        const auto plu_dt_n_l_b_y = std::sqrt((plu_n_l.y() - plu_c_l.y()) * (plu_n_l.y() - plu_c_l.y())) * image_size.second;
-        const auto plu_dt_n_l_b = std::sqrt(plu_dt_n_l_b_x * plu_dt_n_l_b_x + plu_dt_n_l_b_y * plu_dt_n_l_b_y);
+        const auto plu_dt_n_l_x = std::sqrt((plu_n_l.x() - plu_c_l.x()) * (plu_n_l.x() - plu_c_l.x())) * image_size_x;
+        const auto plu_dt_n_l_y = std::sqrt((plu_n_l.y() - plu_c_l.y()) * (plu_n_l.y() - plu_c_l.y())) * image_size_y;
+        const auto plu_dt_n_l = std::sqrt(plu_dt_n_l_x * plu_dt_n_l_x + plu_dt_n_l_y * plu_dt_n_l_y);
+        
+        // calculate delta_xxx
+        float delta_plu_r_x = -1000;
+        float delta_plu_l_x = -1000;
+        float delta_plu_r_y = -1000;
+        float delta_plu_l_y = -1000;
+        float delta_plu_r = -1000;
+        float delta_plu_l = -1000;
+        float delta_plu_x = -1000;
+        float delta_plu_y = -1000;
+        float delta_plu = -1000;
+
+        if (last_plu_dt_a_r > 0 && plu_dt_a_r > 0) {
+          delta_plu_r_x = ((plu_dt_n_r_x - last_plu_dt_n_r_x) - (plu_dt_t_r_x - last_plu_dt_t_r_x)) * kDeltaAdjustInMM / 2;
+          delta_plu_l_x = ((plu_dt_n_l_x - last_plu_dt_n_l_x) - (plu_dt_t_l_x - last_plu_dt_t_l_x)) * kDeltaAdjustInMM / 2;
+          delta_plu_r_y = ((plu_dt_n_r_y - last_plu_dt_n_r_y) - (plu_dt_t_r_y - last_plu_dt_t_r_y)) * kDeltaAdjustInMM / 2;
+          delta_plu_l_y = ((plu_dt_n_l_y - last_plu_dt_n_l_y) - (plu_dt_t_l_y - last_plu_dt_t_l_y)) * kDeltaAdjustInMM / 2;
+          delta_plu_r = ((plu_dt_n_r - last_plu_dt_n_r) - (plu_dt_t_r - last_plu_dt_t_r)) * kDeltaAdjustInMM / 2;
+          delta_plu_l = ((plu_dt_n_l - last_plu_dt_n_l) - (plu_dt_t_l - last_plu_dt_t_l)) * kDeltaAdjustInMM / 2;
+          delta_plu_x = delta_plu_l_x - delta_plu_r_x;
+          delta_plu_y = delta_plu_l_y - delta_plu_r_y;
+          delta_plu = delta_plu_l - delta_plu_r;
+        }
+
+        if (delta_plu_r_x > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_r_x_count += 1;
+        }
+        if (delta_plu_l_x > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_l_x_count += 1;
+        }
+        if (delta_plu_r_y > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_r_y_count += 1;
+        }
+        if (delta_plu_l_y > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_l_y_count += 1;
+        }
+        if (delta_plu_r > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_r_count += 1;
+        }
+        if (delta_plu_l > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_l_count += 1;
+        }
+        if (delta_plu_x > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_x_count += 1;
+        }
+        if (delta_plu_y > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_y_count += 1;
+        }
+        if (delta_plu > kDeltaStrabismusThresholdInMM) {
+          warn_delta_plu_count += 1;
+        }
+        
+        // lastly update last_xxx values
+        if (last_plu_dt_a_r < 0 || std::isinf(last_plu_dt_a_r)) {
+          if (last_plu_dt_a_r > 0) {
+            last_plu_dt_a_r_x = plu_dt_a_r_x;
+            last_plu_dt_a_r_y = plu_dt_a_r_y;
+            last_plu_dt_a_r = plu_dt_a_r;
+            
+            last_plu_dt_a_l_x = plu_dt_a_l_x;
+            last_plu_dt_a_l_y = plu_dt_a_l_y;
+            last_plu_dt_a_l = plu_dt_a_l;
+            
+            last_plu_dt_t_r_x = plu_dt_t_r_x;
+            last_plu_dt_t_r_y = plu_dt_t_r_y;
+            last_plu_dt_t_r = plu_dt_t_r;
+            
+            last_plu_dt_t_l_x = plu_dt_t_l_x;
+            last_plu_dt_t_l_y = plu_dt_t_l_y;
+            last_plu_dt_t_l = plu_dt_t_l;
+            
+            last_plu_dt_n_r_x = plu_dt_n_r_x;
+            last_plu_dt_n_r_y = plu_dt_n_r_y;
+            last_plu_dt_n_r = plu_dt_n_r;
+            
+            last_plu_dt_n_l_x = plu_dt_n_l_x;
+            last_plu_dt_n_l_y = plu_dt_n_l_y;
+            last_plu_dt_n_l = plu_dt_n_l;
+          }
+        }
 
         // left
         line = "";
-        absl::StrAppend(&line, "left iris size : ", std::round(plu_left_iris_size), " mm");
+        absl::StrAppend(&line, "left iris size : ", absl::StrFormat("%.2f", plu_left_iris_size), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "left ab : ", absl::StrFormat("%.2f", plu_dt_a_l), " , ", absl::StrFormat("%.2f", plu_dt_a_l_x), absl::StrFormat("%.2f", plu_dt_a_l_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "left tb : ", absl::StrFormat("%.2f", plu_dt_t_l), " , ", absl::StrFormat("%.2f", plu_dt_t_l_x), absl::StrFormat("%.2f", plu_dt_t_l_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "left nb : ", absl::StrFormat("%.2f", plu_dt_n_l), " , ", absl::StrFormat("%.2f", plu_dt_n_l_x), absl::StrFormat("%.2f", plu_dt_n_l_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "left delta : ", absl::StrFormat("%.2f", delta_plu_l), " , ", absl::StrFormat("%.2f", delta_plu_l_x), absl::StrFormat("%.2f", delta_plu_l_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "left delta count : ", absl::StrFormat("%.2f", warn_delta_plu_l_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_l_x_count), absl::StrFormat("%.2f", warn_delta_plu_l_y_count), " mm");
         lines.emplace_back(line);
 
         // right
         line = "";
-        absl::StrAppend(&line, "right iris size : ", std::round(plu_right_iris_size), " mm");
+        absl::StrAppend(&line, "right iris size : ", absl::StrFormat("%.2f", plu_right_iris_size), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "right ab : ", absl::StrFormat("%.2f", plu_dt_a_r), " , ", absl::StrFormat("%.2f", plu_dt_a_r_x), absl::StrFormat("%.2f", plu_dt_a_r_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "right tb : ", absl::StrFormat("%.2f", plu_dt_t_r), " , ", absl::StrFormat("%.2f", plu_dt_t_r_x), absl::StrFormat("%.2f", plu_dt_t_r_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "right nb : ", absl::StrFormat("%.2f", plu_dt_n_r), " , ", absl::StrFormat("%.2f", plu_dt_n_r_x), absl::StrFormat("%.2f", plu_dt_n_r_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "right delta : ", absl::StrFormat("%.2f", delta_plu_r), " , ", absl::StrFormat("%.2f", delta_plu_r_x), absl::StrFormat("%.2f", delta_plu_r_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "right delta count : ", absl::StrFormat("%.2f", warn_delta_plu_r_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_r_x_count), absl::StrFormat("%.2f", warn_delta_plu_r_y_count), " mm");
         lines.emplace_back(line);
 
         // total
         line = "";
-        absl::StrAppend(&line, "iris size : ", std::round(plu_iris_size), " mm");
+        absl::StrAppend(&line, "iris size : ", absl::StrFormat("%.2f", plu_iris_size), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "delta : ", absl::StrFormat("%.2f", delta_plu), " , ", absl::StrFormat("%.2f", delta_plu_x), absl::StrFormat("%.2f", delta_plu_y), " mm");
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "delta count : ", absl::StrFormat("%.2f", warn_delta_plu_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_x_count), absl::StrFormat("%.2f", warn_delta_plu_y_count), " mm");
         lines.emplace_back(line);
       }
     }
