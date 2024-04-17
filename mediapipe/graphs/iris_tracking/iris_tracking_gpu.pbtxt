@@ -134,6 +134,7 @@ node {
 node {
   calculator: "IrisAndDepthRendererGpu"
   input_stream: "IMAGE:throttled_input_video"
+  input_stream: "FACE_LANDMARKS:face_landmarks"
   input_stream: "EYE_LANDMARKS_LEFT:left_eye_contour_landmarks"
   input_stream: "EYE_LANDMARKS_RIGHT:right_eye_contour_landmarks"
   input_stream: "IRIS_LANDMARKS_LEFT:left_iris_landmarks"

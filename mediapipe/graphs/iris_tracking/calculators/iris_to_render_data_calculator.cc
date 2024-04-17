@@ -33,6 +33,7 @@ constexpr char kRenderDataTag[] = "RENDER_DATA";
 constexpr char kImageSizeTag[] = "IMAGE_SIZE";
 constexpr char kLeftIrisDepthTag[] = "LEFT_IRIS_DEPTH_MM";
 constexpr char kRightIrisDepthTag[] = "RIGHT_IRIS_DEPTH_MM";
+constexpr char kFaceLandmarksTag[] = "NORM_LANDMARKS";
 constexpr char kOvalLabel[] = "OVAL";
 constexpr float kFontHeightScale = 1.5f;
 constexpr int kNumIrisLandmarksPerEye = 5;
@@ -110,6 +111,7 @@ class IrisToRenderDataCalculator : public CalculatorBase {
  public:
   static absl::Status GetContract(CalculatorContract* cc) {
     cc->Inputs().Tag(kIrisTag).Set<NormalizedLandmarkList>();
+    cc->Inputs().Tag(kFaceLandmarksTag).Set<NormalizedLandmarkList>();
     cc->Outputs().Tag(kRenderDataTag).Set<RenderData>();
     cc->Inputs().Tag(kImageSizeTag).Set<std::pair<int, int>>();
 
@@ -207,6 +209,48 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
       lines.emplace_back(line);
     }
   }
+
+  if (!cc->Inputs().Tag(kIrisTag).IsEmpty()) {
+    const auto& plu_c_r = right_iris->landmark(0);
+    const auto& plu_c_l = left_iris->landmark(0);
+    // get 4 eye points
+    if (!cc->Inputs().Tag(kFaceLandmarksTag).IsEmpty()) {
+      const auto& update_face_landmarks =
+          cc->Inputs().Tag(kFaceLandmarksTag).Get<NormalizedLandmarkList>();
+      const auto& plu_t_r = update_face_landmarks.landmark(263);
+      const auto& plu_n_r = update_face_landmarks.landmark(362);
+      const auto& plu_n_l = update_face_landmarks.landmark(133);
+      const auto& plu_t_l = update_face_landmarks.landmark(33);
+
+      // iris plu size
+      auto plu_iris_size = left_iris_size;
+      if (plu_iris_size < right_iris_size) {
+        plu_iris_size = right_iris_size;
+      }
+      if (plu_iris_size > 0) {
+        const auto plu_adjust_iris_size_ratio = kIrisSizeInMM / plu_iris_size;
+        plu_iris_size = plu_iris_size * plu_adjust_iris_size_ratio;
+        const auto plu_left_iris_size = left_iris_size * plu_adjust_iris_size_ratio;
+        const auto plu_right_iris_size = right_iris_size * plu_adjust_iris_size_ratio;
+
+        // left
+        line = "";
+        absl::StrAppend(&line, "left iris size : ", std::round(plu_left_iris_size), " mm");
+        lines.emplace_back(line);
+
+        // right
+        line = "";
+        absl::StrAppend(&line, "right iris size : ", std::round(plu_right_iris_size), " mm");
+        lines.emplace_back(line);
+
+        // total
+        line = "";
+        absl::StrAppend(&line, "iris size : ", std::round(plu_iris_size), " mm");
+        lines.emplace_back(line);
+      }
+    }
+  }
+
   AddTextRenderData(options, image_size, lines, render_data.get());
 
   cc->Outputs()
@@ -231,7 +275,7 @@ void IrisToRenderDataCalculator::AddTextRenderData(
   const auto label_left_px = options.horizontal_offset_px();
   for (int i = 0; i < lines.size(); ++i) {
     auto* label_annotation = render_data->add_render_annotations();
-    label_annotation->set_thickness(5);
+    label_annotation->set_thickness(2);
 
     label_annotation->mutable_color()->set_r(255);
     label_annotation->mutable_color()->set_g(0);
