@@ -41,6 +41,7 @@ constexpr int kNumIrisLandmarksPerEye = 5;
 constexpr float kIrisSizeInMM = 11.8;
 constexpr float kDeltaAdjustInMM = 4;
 constexpr float kDeltaStrabismusThresholdInMM = 6;
+constexpr float kDepthWeightUpdate = 0.1;
 
 inline void SetColor(RenderAnnotation* annotation, const Color& color) {
   annotation->mutable_color()->set_r(color.r());
@@ -166,6 +167,32 @@ class IrisToRenderDataCalculator : public CalculatorBase {
   int warn_delta_plu_x_count = 0;
   int warn_delta_plu_y_count = 0;
   int warn_delta_plu_count = 0;
+  
+  float plu_iris_size = -1.f;
+
+  float plu_dt_a_r_x = -1.f;
+  float plu_dt_a_r_y = -1.f;
+  float plu_dt_a_r = -1.f;
+  
+  float plu_dt_a_l_x = -1.f;
+  float plu_dt_a_l_y = -1.f;
+  float plu_dt_a_l = -1.f;
+  
+  float plu_dt_t_r_x = -1.f;
+  float plu_dt_t_r_y = -1.f;
+  float plu_dt_t_r = -1.f;
+  
+  float plu_dt_t_l_x = -1.f;
+  float plu_dt_t_l_y = -1.f;
+  float plu_dt_t_l = -1.f;
+  
+  float plu_dt_n_r_x = -1.f;
+  float plu_dt_n_r_y = -1.f;
+  float plu_dt_n_r = -1.f;
+  
+  float plu_dt_n_l_x = -1.f;
+  float plu_dt_n_l_y = -1.f;
+  float plu_dt_n_l = -1.f;
 
 
   void RenderIris(const NormalizedLandmarkList& iris_landmarks,
@@ -284,52 +311,168 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
       landmark_data->set_y(plu_t_l.y());
 
       // iris plu size
-      auto plu_iris_size = left_iris_size;
-      if (plu_iris_size < right_iris_size) {
-        plu_iris_size = right_iris_size;
+      auto raw_plu_iris_size = left_iris_size;
+      if (raw_plu_iris_size < right_iris_size) {
+        raw_plu_iris_size = right_iris_size;
       }
-      if (plu_iris_size > 0) {
+      if (raw_plu_iris_size > 0) {
+        plu_iris_size =
+            plu_iris_size < 0 || std::isinf(plu_iris_size)
+                ? raw_plu_iris_size
+                : plu_iris_size * (1 - kDepthWeightUpdate) +
+                      raw_plu_iris_size * kDepthWeightUpdate;
+
         const auto plu_adjust_iris_size_ratio = kIrisSizeInMM / plu_iris_size;
-        plu_iris_size = plu_iris_size * plu_adjust_iris_size_ratio;
+        const auto show_plu_iris_size = plu_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_left_iris_size = left_iris_size * plu_adjust_iris_size_ratio;
         const auto plu_right_iris_size = right_iris_size * plu_adjust_iris_size_ratio;
-        const auto image_size_x = image_size.first;
-        const auto image_size_y = image_size.second;
 
-        const auto plu_dt_a_r_x = std::sqrt((plu_t_r.x() - plu_n_r.x()) * (plu_t_r.x() - plu_n_r.x())) * image_size_x;
-        const auto plu_dt_a_r_y = std::sqrt((plu_t_r.y() - plu_n_r.y()) * (plu_t_r.y() - plu_n_r.y())) * image_size_y;
-        const auto plu_dt_a_r = std::sqrt(plu_dt_a_r_x * plu_dt_a_r_x + plu_dt_a_r_y * plu_dt_a_r_y);
+        const auto image_size_x = image_size.first * plu_adjust_iris_size_ratio;
+        const auto image_size_y = image_size.second * plu_adjust_iris_size_ratio;
+
+        const auto raw_plu_dt_a_r_x = std::sqrt((plu_t_r.x() - plu_n_r.x()) * (plu_t_r.x() - plu_n_r.x())) * image_size_x;
+        const auto raw_plu_dt_a_r_y = std::sqrt((plu_t_r.y() - plu_n_r.y()) * (plu_t_r.y() - plu_n_r.y())) * image_size_y;
+        const auto raw_plu_dt_a_r = std::sqrt(raw_plu_dt_a_r_x * raw_plu_dt_a_r_x + raw_plu_dt_a_r_y * raw_plu_dt_a_r_y);
         
-        const auto plu_dt_a_l_x = std::sqrt((plu_t_l.x() - plu_n_l.x()) * (plu_t_l.x() - plu_n_l.x())) * image_size_x;
-        const auto plu_dt_a_l_y = std::sqrt((plu_t_l.y() - plu_n_l.y()) * (plu_t_l.y() - plu_n_l.y())) * image_size_y;
-        const auto plu_dt_a_l = std::sqrt(plu_dt_a_l_x * plu_dt_a_l_x + plu_dt_a_l_y * plu_dt_a_l_y);
+        const auto raw_plu_dt_a_l_x = std::sqrt((plu_t_l.x() - plu_n_l.x()) * (plu_t_l.x() - plu_n_l.x())) * image_size_x;
+        const auto raw_plu_dt_a_l_y = std::sqrt((plu_t_l.y() - plu_n_l.y()) * (plu_t_l.y() - plu_n_l.y())) * image_size_y;
+        const auto raw_plu_dt_a_l = std::sqrt(raw_plu_dt_a_l_x * raw_plu_dt_a_l_x + raw_plu_dt_a_l_y * raw_plu_dt_a_l_y);
         
-        const auto plu_dt_t_r_x = std::sqrt((plu_t_r.x() - plu_c_r.x()) * (plu_t_r.x() - plu_c_r.x())) * image_size_x;
-        const auto plu_dt_t_r_y = std::sqrt((plu_t_r.y() - plu_c_r.y()) * (plu_t_r.y() - plu_c_r.y())) * image_size_y;
-        const auto plu_dt_t_r = std::sqrt(plu_dt_t_r_x * plu_dt_t_r_x + plu_dt_t_r_y * plu_dt_t_r_y);
+        const auto raw_plu_dt_t_r_x = std::sqrt((plu_t_r.x() - plu_c_r.x()) * (plu_t_r.x() - plu_c_r.x())) * image_size_x;
+        const auto raw_plu_dt_t_r_y = std::sqrt((plu_t_r.y() - plu_c_r.y()) * (plu_t_r.y() - plu_c_r.y())) * image_size_y;
+        const auto raw_plu_dt_t_r = std::sqrt(raw_plu_dt_t_r_x * raw_plu_dt_t_r_x + raw_plu_dt_t_r_y * raw_plu_dt_t_r_y);
         
-        const auto plu_dt_t_l_x = std::sqrt((plu_t_l.x() - plu_c_l.x()) * (plu_t_l.x() - plu_c_l.x())) * image_size_x;
-        const auto plu_dt_t_l_y = std::sqrt((plu_t_l.y() - plu_c_l.y()) * (plu_t_l.y() - plu_c_l.y())) * image_size_y;
-        const auto plu_dt_t_l = std::sqrt(plu_dt_t_l_x * plu_dt_t_l_x + plu_dt_t_l_y * plu_dt_t_l_y);
+        const auto raw_plu_dt_t_l_x = std::sqrt((plu_t_l.x() - plu_c_l.x()) * (plu_t_l.x() - plu_c_l.x())) * image_size_x;
+        const auto raw_plu_dt_t_l_y = std::sqrt((plu_t_l.y() - plu_c_l.y()) * (plu_t_l.y() - plu_c_l.y())) * image_size_y;
+        const auto raw_plu_dt_t_l = std::sqrt(raw_plu_dt_t_l_x * raw_plu_dt_t_l_x + raw_plu_dt_t_l_y * raw_plu_dt_t_l_y);
         
-        const auto plu_dt_n_r_x = std::sqrt((plu_n_r.x() - plu_c_r.x()) * (plu_n_r.x() - plu_c_r.x())) * image_size_x;
-        const auto plu_dt_n_r_y = std::sqrt((plu_n_r.y() - plu_c_r.y()) * (plu_n_r.y() - plu_c_r.y())) * image_size_y;
-        const auto plu_dt_n_r = std::sqrt(plu_dt_n_r_x * plu_dt_n_r_x + plu_dt_n_r_y * plu_dt_n_r_y);
+        const auto raw_plu_dt_n_r_x = std::sqrt((plu_n_r.x() - plu_c_r.x()) * (plu_n_r.x() - plu_c_r.x())) * image_size_x;
+        const auto raw_plu_dt_n_r_y = std::sqrt((plu_n_r.y() - plu_c_r.y()) * (plu_n_r.y() - plu_c_r.y())) * image_size_y;
+        const auto raw_plu_dt_n_r = std::sqrt(raw_plu_dt_n_r_x * raw_plu_dt_n_r_x + raw_plu_dt_n_r_y * raw_plu_dt_n_r_y);
         
-        const auto plu_dt_n_l_x = std::sqrt((plu_n_l.x() - plu_c_l.x()) * (plu_n_l.x() - plu_c_l.x())) * image_size_x;
-        const auto plu_dt_n_l_y = std::sqrt((plu_n_l.y() - plu_c_l.y()) * (plu_n_l.y() - plu_c_l.y())) * image_size_y;
-        const auto plu_dt_n_l = std::sqrt(plu_dt_n_l_x * plu_dt_n_l_x + plu_dt_n_l_y * plu_dt_n_l_y);
+        const auto raw_plu_dt_n_l_x = std::sqrt((plu_n_l.x() - plu_c_l.x()) * (plu_n_l.x() - plu_c_l.x())) * image_size_x;
+        const auto raw_plu_dt_n_l_y = std::sqrt((plu_n_l.y() - plu_c_l.y()) * (plu_n_l.y() - plu_c_l.y())) * image_size_y;
+        const auto raw_plu_dt_n_l = std::sqrt(raw_plu_dt_n_l_x * raw_plu_dt_n_l_x + raw_plu_dt_n_l_y * raw_plu_dt_n_l_y);
+
+
+        plu_dt_a_r_x =
+            plu_dt_a_r_x < 0 || std::isinf(plu_dt_a_r_x)
+                ? raw_plu_dt_a_r_x
+                : plu_dt_a_r_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_r_x * kDepthWeightUpdate;
+
+        plu_dt_a_r_y =
+            plu_dt_a_r_y < 0 || std::isinf(plu_dt_a_r_y)
+                ? raw_plu_dt_a_r_y
+                : plu_dt_a_r_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_r_y * kDepthWeightUpdate;
+
+        plu_dt_a_r =
+            plu_dt_a_r < 0 || std::isinf(plu_dt_a_r)
+                ? raw_plu_dt_a_r
+                : plu_dt_a_r * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_r * kDepthWeightUpdate;
+
+        plu_dt_a_l_x =
+            plu_dt_a_l_x < 0 || std::isinf(plu_dt_a_l_x)
+                ? raw_plu_dt_a_l_x
+                : plu_dt_a_l_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_l_x * kDepthWeightUpdate;
+
+        plu_dt_a_l_y =
+            plu_dt_a_l_y < 0 || std::isinf(plu_dt_a_l_y)
+                ? raw_plu_dt_a_l_y
+                : plu_dt_a_l_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_l_y * kDepthWeightUpdate;
+
+        plu_dt_a_l =
+            plu_dt_a_l < 0 || std::isinf(plu_dt_a_l)
+                ? raw_plu_dt_a_l
+                : plu_dt_a_l * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_a_l * kDepthWeightUpdate;
+
+        plu_dt_t_r_x =
+            plu_dt_t_r_x < 0 || std::isinf(plu_dt_t_r_x)
+                ? raw_plu_dt_t_r_x
+                : plu_dt_t_r_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_r_x * kDepthWeightUpdate;
+
+        plu_dt_t_r_y =
+            plu_dt_t_r_y < 0 || std::isinf(plu_dt_t_r_y)
+                ? raw_plu_dt_t_r_y
+                : plu_dt_t_r_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_r_y * kDepthWeightUpdate;
+
+        plu_dt_t_r =
+            plu_dt_t_r < 0 || std::isinf(plu_dt_t_r)
+                ? raw_plu_dt_t_r
+                : plu_dt_t_r * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_r * kDepthWeightUpdate;
+
+        plu_dt_t_l_x =
+            plu_dt_t_l_x < 0 || std::isinf(plu_dt_t_l_x)
+                ? raw_plu_dt_t_l_x
+                : plu_dt_t_l_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_l_x * kDepthWeightUpdate;
+
+        plu_dt_t_l_y =
+            plu_dt_t_l_y < 0 || std::isinf(plu_dt_t_l_y)
+                ? raw_plu_dt_t_l_y
+                : plu_dt_t_l_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_l_y * kDepthWeightUpdate;
+
+        plu_dt_t_l =
+            plu_dt_t_l < 0 || std::isinf(plu_dt_t_l)
+                ? raw_plu_dt_t_l
+                : plu_dt_t_l * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_t_l * kDepthWeightUpdate;
+
+        plu_dt_n_r_x =
+            plu_dt_n_r_x < 0 || std::isinf(plu_dt_n_r_x)
+                ? raw_plu_dt_n_r_x
+                : plu_dt_n_r_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_r_x * kDepthWeightUpdate;
+
+        plu_dt_n_r_y =
+            plu_dt_n_r_y < 0 || std::isinf(plu_dt_n_r_y)
+                ? raw_plu_dt_n_r_y
+                : plu_dt_n_r_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_r_y * kDepthWeightUpdate;
+
+        plu_dt_n_r =
+            plu_dt_n_r < 0 || std::isinf(plu_dt_n_r)
+                ? raw_plu_dt_n_r
+                : plu_dt_n_r * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_r * kDepthWeightUpdate;
+
+        plu_dt_n_l_x =
+            plu_dt_n_l_x < 0 || std::isinf(plu_dt_n_l_x)
+                ? raw_plu_dt_n_l_x
+                : plu_dt_n_l_x * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_l_x * kDepthWeightUpdate;
+
+        plu_dt_n_l_y =
+            plu_dt_n_l_y < 0 || std::isinf(plu_dt_n_l_y)
+                ? raw_plu_dt_n_l_y
+                : plu_dt_n_l_y * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_l_y * kDepthWeightUpdate;
+
+        plu_dt_n_l =
+            plu_dt_n_l < 0 || std::isinf(plu_dt_n_l)
+                ? raw_plu_dt_n_l
+                : plu_dt_n_l * (1 - kDepthWeightUpdate) +
+                      raw_plu_dt_n_l * kDepthWeightUpdate;
         
         // calculate delta_xxx
-        float delta_plu_r_x = -1000;
-        float delta_plu_l_x = -1000;
-        float delta_plu_r_y = -1000;
-        float delta_plu_l_y = -1000;
-        float delta_plu_r = -1000;
-        float delta_plu_l = -1000;
-        float delta_plu_x = -1000;
-        float delta_plu_y = -1000;
-        float delta_plu = -1000;
+        float delta_plu_r_x = -100;
+        float delta_plu_l_x = -100;
+        float delta_plu_r_y = -100;
+        float delta_plu_l_y = -100;
+        float delta_plu_r = -100;
+        float delta_plu_l = -100;
+        float delta_plu_x = -100;
+        float delta_plu_y = -100;
+        float delta_plu = -100;
 
         if (last_plu_dt_a_r > 0 && plu_dt_a_r > 0) {
           delta_plu_r_x = ((plu_dt_n_r_x - last_plu_dt_n_r_x) - (plu_dt_t_r_x - last_plu_dt_t_r_x)) * kDeltaAdjustInMM / 2;
@@ -373,7 +516,7 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
         
         // lastly update last_xxx values
         if (last_plu_dt_a_r < 0 || std::isinf(last_plu_dt_a_r)) {
-          if (last_plu_dt_a_r > 0) {
+          if (plu_dt_a_r > 0) {
             last_plu_dt_a_r_x = plu_dt_a_r_x;
             last_plu_dt_a_r_y = plu_dt_a_r_y;
             last_plu_dt_a_r = plu_dt_a_r;
@@ -402,53 +545,56 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
 
         // left
         line = "";
-        absl::StrAppend(&line, "left iris size : ", absl::StrFormat("%.2f", plu_left_iris_size), " mm");
+        absl::StrAppend(&line, "left iris size : ", absl::StrFormat("% 5.1f", plu_left_iris_size), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "left ab : ", absl::StrFormat("%.2f", plu_dt_a_l), " , ", absl::StrFormat("%.2f", plu_dt_a_l_x), absl::StrFormat("%.2f", plu_dt_a_l_y), " mm");
+        absl::StrAppend(&line, "left ab : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_a_l, plu_dt_a_l_x, plu_dt_a_l_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "left tb : ", absl::StrFormat("%.2f", plu_dt_t_l), " , ", absl::StrFormat("%.2f", plu_dt_t_l_x), absl::StrFormat("%.2f", plu_dt_t_l_y), " mm");
+        absl::StrAppend(&line, "left tb : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_t_l, plu_dt_t_l_x, plu_dt_t_l_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "left nb : ", absl::StrFormat("%.2f", plu_dt_n_l), " , ", absl::StrFormat("%.2f", plu_dt_n_l_x), absl::StrFormat("%.2f", plu_dt_n_l_y), " mm");
+        absl::StrAppend(&line, "left nb : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_n_l, plu_dt_n_l_x, plu_dt_n_l_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "left delta : ", absl::StrFormat("%.2f", delta_plu_l), " , ", absl::StrFormat("%.2f", delta_plu_l_x), absl::StrFormat("%.2f", delta_plu_l_y), " mm");
+        absl::StrAppend(&line, "left delta : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", delta_plu_l, delta_plu_l_x, delta_plu_l_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "left delta count : ", absl::StrFormat("%.2f", warn_delta_plu_l_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_l_x_count), absl::StrFormat("%.2f", warn_delta_plu_l_y_count), " mm");
+        absl::StrAppend(&line, "left count : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", warn_delta_plu_l_count, warn_delta_plu_l_x_count, warn_delta_plu_l_y_count));
         lines.emplace_back(line);
 
         // right
         line = "";
-        absl::StrAppend(&line, "right iris size : ", absl::StrFormat("%.2f", plu_right_iris_size), " mm");
+        absl::StrAppend(&line, "right iris size : ", absl::StrFormat("% 5.1f", plu_right_iris_size), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "right ab : ", absl::StrFormat("%.2f", plu_dt_a_r), " , ", absl::StrFormat("%.2f", plu_dt_a_r_x), absl::StrFormat("%.2f", plu_dt_a_r_y), " mm");
+        absl::StrAppend(&line, "right ab : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_a_r, plu_dt_a_r_x, plu_dt_a_r_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "right tb : ", absl::StrFormat("%.2f", plu_dt_t_r), " , ", absl::StrFormat("%.2f", plu_dt_t_r_x), absl::StrFormat("%.2f", plu_dt_t_r_y), " mm");
+        absl::StrAppend(&line, "right tb : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_t_r, plu_dt_t_r_x, plu_dt_t_r_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "right nb : ", absl::StrFormat("%.2f", plu_dt_n_r), " , ", absl::StrFormat("%.2f", plu_dt_n_r_x), absl::StrFormat("%.2f", plu_dt_n_r_y), " mm");
+        absl::StrAppend(&line, "right nb : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", plu_dt_n_r, plu_dt_n_r_x, plu_dt_n_r_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "right delta : ", absl::StrFormat("%.2f", delta_plu_r), " , ", absl::StrFormat("%.2f", delta_plu_r_x), absl::StrFormat("%.2f", delta_plu_r_y), " mm");
+        absl::StrAppend(&line, "right delta : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", delta_plu_r, delta_plu_r_x, delta_plu_r_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "right delta count : ", absl::StrFormat("%.2f", warn_delta_plu_r_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_r_x_count), absl::StrFormat("%.2f", warn_delta_plu_r_y_count), " mm");
+        absl::StrAppend(&line, "right count : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", warn_delta_plu_r_count, warn_delta_plu_r_x_count, warn_delta_plu_r_y_count));
         lines.emplace_back(line);
 
         // total
         line = "";
-        absl::StrAppend(&line, "iris size : ", absl::StrFormat("%.2f", plu_iris_size), " mm");
+        absl::StrAppend(&line, "iris  : ", absl::StrFormat("% 5.1f", show_plu_iris_size), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "delta : ", absl::StrFormat("%.2f", delta_plu), " , ", absl::StrFormat("%.2f", delta_plu_x), absl::StrFormat("%.2f", delta_plu_y), " mm");
+        absl::StrAppend(&line, "delta : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", delta_plu, delta_plu_x, delta_plu_y), " mm");
         lines.emplace_back(line);
         line = "";
-        absl::StrAppend(&line, "delta count : ", absl::StrFormat("%.2f", warn_delta_plu_count), " , ", absl::StrFormat("%.2f", warn_delta_plu_x_count), absl::StrFormat("%.2f", warn_delta_plu_y_count), " mm");
+        absl::StrAppend(&line, "count : ", absl::StrFormat("d% 5.1f, x% 5.1f, y% 5.1f", warn_delta_plu_count, warn_delta_plu_x_count, warn_delta_plu_y_count));
+        lines.emplace_back(line);
+        line = "";
+        absl::StrAppend(&line, "const : ", absl::StrFormat("iris % 5.1f, calc % 5.1f, delta % 5.1f", kIrisSizeInMM, kDeltaAdjustInMM, kDeltaStrabismusThresholdInMM), " mm");
         lines.emplace_back(line);
       }
     }
