@@ -231,8 +231,8 @@ node {
       oval_thickness: 1.0
       landmark_thickness: 0.5
       font_height_px: 20
-      horizontal_offset_px: 40
-      vertical_offset_px: 40
+      horizontal_offset_px: 200
+      vertical_offset_px: 200
       location: TOP_LEFT
     }
   }
