@@ -48,21 +48,6 @@ node {
   output_stream: "iris_landmarks"
 }
 
-# Converts landmarks to drawing primitives for annotation overlay.
-node {
-  calculator: "FaceLandmarksToRenderDataCalculator"
-  input_stream: "NORM_LANDMARKS:face_landmarks"
-  output_stream: "RENDER_DATA:face_landmarks_render_data"
-  node_options: {
-    [type.googleapis.com/mediapipe.LandmarksToRenderDataCalculatorOptions] {
-      landmark_color { r: 150 g: 0 b: 0 }
-      connection_color { r: 0 g: 150 b: 0 }
-      thickness: 1
-      visualize_landmark_depth: false
-    }
-  }
-}
-
 node {
   calculator: "ImagePropertiesCalculator"
   input_stream: "IMAGE:input_image"
