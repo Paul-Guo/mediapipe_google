@@ -28,17 +28,6 @@ node: {
   output_stream: "input_video_gpu"
 }
 
-node {
-  calculator: "FlowLimiterCalculator"
-  input_stream: "input_video_gpu"
-  input_stream: "FINISHED:output_video"
-  input_stream_info: {
-    tag_index: "FINISHED"
-    back_edge: true
-  }
-  output_stream: "throttled_input_video"
-}
-
 # Defines how many faces to detect. Iris tracking currently only handles one
 # face (left and right eye), and therefore this should always be set to 1.
 node {
@@ -54,7 +43,7 @@ node {
 # Detects faces and corresponding landmarks.
 node {
   calculator: "FaceLandmarkFrontGpu"
-  input_stream: "IMAGE:throttled_input_video"
+  input_stream: "IMAGE:input_video"
   input_side_packet: "NUM_FACES:num_faces"
   output_stream: "LANDMARKS:multi_face_landmarks"
   output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
@@ -120,7 +109,7 @@ node {
 # Detects iris landmarks, eye contour landmarks, and corresponding rect (ROI).
 node {
   calculator: "IrisLandmarkLeftAndRightGpu"
-  input_stream: "IMAGE:throttled_input_video"
+  input_stream: "IMAGE:input_video_gpu"
   input_stream: "LEFT_EYE_BOUNDARY_LANDMARKS:left_eye_boundary_landmarks"
   input_stream: "RIGHT_EYE_BOUNDARY_LANDMARKS:right_eye_boundary_landmarks"
   output_stream: "LEFT_EYE_CONTOUR_LANDMARKS:left_eye_contour_landmarks"
@@ -148,7 +137,7 @@ node {
 # Renders annotations and overlays them on top of the input images.
 node {
   calculator: "IrisAndDepthRendererGpu"
-  input_stream: "IMAGE:throttled_input_video"
+  input_stream: "IMAGE:input_video_gpu"
   input_stream: "FACE_LANDMARKS:updated_face_landmarks"
   input_stream: "EYE_LANDMARKS_LEFT:left_eye_contour_landmarks"
   input_stream: "EYE_LANDMARKS_RIGHT:right_eye_contour_landmarks"
