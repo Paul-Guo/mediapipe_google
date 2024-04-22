@@ -94,6 +94,10 @@ cc_library(
         "//mediapipe/graphs/iris_tracking/subgraphs:iris_and_depth_renderer_gpu",
         "//mediapipe/modules/face_landmark:face_landmark_front_gpu",
         "//mediapipe/modules/iris_landmark:iris_landmark_left_and_right_gpu",
+        "//mediapipe/gpu:gpu_buffer_to_image_frame_calculator",
+        "//mediapipe/gpu:image_frame_to_gpu_buffer_calculator",
+        "//mediapipe/modules/face_detection:face_detection_short_range_cpu",
+        "//mediapipe/modules/face_detection:face_detection_short_range_gpu",
         "@com_google_absl//absl/strings",
     ],
 )
