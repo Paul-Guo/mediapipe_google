@@ -46,6 +46,15 @@ cc_binary(
 )
 
 cc_binary(
+    name = "iris_tracking_gpu_video_input",
+    data = ["//mediapipe/modules/iris_landmark:iris_landmark.tflite"],
+    deps = [
+        "//mediapipe/examples/desktop:demo_run_graph_main_gpu",
+        "//mediapipe/graphs/iris_tracking:iris_tracking_gpu_video_input_deps",
+    ],
+)
+
+cc_binary(
     name = "iris_tracking_cpu",
     data = ["//mediapipe/modules/iris_landmark:iris_landmark.tflite"],
     deps = [

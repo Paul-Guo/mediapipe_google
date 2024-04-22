@@ -57,6 +57,15 @@ mediapipe_simple_subgraph(
 )
 
 mediapipe_simple_subgraph(
+    name = "iris_renderer_gpu",
+    graph = "iris_renderer_gpu.pbtxt",
+    register_as = "IrisRendererCpu",
+    deps = [
+        ":renderer_calculators",
+    ],
+)
+
+mediapipe_simple_subgraph(
     name = "iris_and_depth_renderer_cpu",
     graph = "iris_and_depth_renderer_cpu.pbtxt",
     register_as = "IrisAndDepthRendererCpu",
