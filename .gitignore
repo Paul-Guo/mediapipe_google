@@ -1,3 +1,11 @@
+.gradle
+.vscode
+*.mp4
+*.mov
+.DS_Store
+ios
+examples-main*
+tulsi
 bazel-*
 mediapipe/MediaPipe.xcodeproj
 mediapipe/MediaPipe.tulsiproj/*.tulsiconf-user
