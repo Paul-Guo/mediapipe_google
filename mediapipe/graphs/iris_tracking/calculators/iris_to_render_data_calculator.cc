@@ -15,6 +15,8 @@
 #include <cmath>
 #include <memory>
 
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/str_cat.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/landmark.pb.h"
