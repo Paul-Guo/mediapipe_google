@@ -34,6 +34,7 @@ cc_library(
         "//mediapipe/graphs/iris_tracking/subgraphs:iris_and_depth_renderer_cpu",
         "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
         "//mediapipe/modules/iris_landmark:iris_landmark_left_and_right_cpu",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -47,6 +48,7 @@ cc_library(
         "//mediapipe/graphs/iris_tracking/subgraphs:iris_renderer_cpu",
         "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
         "//mediapipe/modules/iris_landmark:iris_landmark_left_and_right_cpu",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -62,6 +64,7 @@ cc_library(
         "//mediapipe/graphs/iris_tracking/subgraphs:iris_renderer_cpu",
         "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
         "//mediapipe/modules/iris_landmark:iris_landmark_left_and_right_cpu",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -75,6 +78,7 @@ cc_library(
         "//mediapipe/graphs/iris_tracking/subgraphs:iris_and_depth_renderer_gpu",
         "//mediapipe/modules/face_landmark:face_landmark_front_gpu",
         "//mediapipe/modules/iris_landmark:iris_landmark_left_and_right_gpu",
+        "@com_google_absl//absl/strings",
     ],
 )
 
