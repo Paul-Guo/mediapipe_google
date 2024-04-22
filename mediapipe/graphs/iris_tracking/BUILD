@@ -98,6 +98,8 @@ cc_library(
         "//mediapipe/gpu:image_frame_to_gpu_buffer_calculator",
         "//mediapipe/modules/face_detection:face_detection_short_range_cpu",
         "//mediapipe/modules/face_detection:face_detection_short_range_gpu",
+        "//mediapipe/calculators/image:color_convert_calculator",
+        "//mediapipe/calculators/image:image_transformation_calculator",
         "@com_google_absl//absl/strings",
     ],
 )
