@@ -49,7 +49,7 @@ cc_binary(
     name = "iris_tracking_gpu_video_input",
     data = ["//mediapipe/modules/iris_landmark:iris_landmark.tflite"],
     deps = [
-        "//mediapipe/examples/desktop:demo_run_graph_main_gpu",
+        "//mediapipe/examples/desktop:simple_run_graph_main",
         "//mediapipe/graphs/iris_tracking:iris_tracking_gpu_video_input_deps",
     ],
 )
