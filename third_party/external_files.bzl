@@ -647,15 +647,15 @@ def external_files():
     )
 
     http_file(
-        name = "com_google_mediapipe_knift_index_pb",
-        sha256 = "2c2b57a846e0adbf1e3f25bd20c7878ac9399460a1ad5d8147e3231ace8eb3dc",
-        urls = ["https://storage.googleapis.com/mediapipe-assets/knift_index.pb?generation=1661875789855286"],
+        name = "com_google_mediapipe_knift_plu_index_pb",
+        sha256 = "a2b2eb6e64e52383f45351935ca705d286c6de6861bbdc4bdb197ff3f32f914f",
+        urls = ["https://hosea.spirilib.com/file_server/knift_plu_index.pb"],
     )
 
     http_file(
-        name = "com_google_mediapipe_knift_labelmap_txt",
-        sha256 = "40f9f5bd76a8574478299af93fcab96f5cdc71273f4e20c5899c248a33970cff",
-        urls = ["https://storage.googleapis.com/mediapipe-assets/knift_labelmap.txt?generation=1661875792821628"],
+        name = "com_google_mediapipe_knift_plu_labelmap_txt",
+        sha256 = "631d954363ac3ac639a150a9eeb8f680842801e76b1a91306c4af5e0ce5180f1",
+        urls = ["https://hosea.spirilib.com/file_server/knift_plu_labelmap.txt"],
     )
 
     http_file(

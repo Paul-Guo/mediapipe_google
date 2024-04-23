@@ -74,7 +74,7 @@ in Google Developers Blog.
 ### Matching US Dollar Bills
 
 In MediaPipe, we've already provided an
-[index file](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_index.pb)
+[index file](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_plu_index.pb)
 pre-computed from the 3 template images (of US dollar bills) shown below. If
 you'd like to use your own template images, see
 [Matching Your Own Template Images](#matching-your-own-template-images).
@@ -142,9 +142,9 @@ to run regular TFLite inference.
     The output index file includes the extracted KNIFT features.
 
 *   Step 3: Replace
-    [mediapipe/models/knift_index.pb](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_index.pb)
+    [mediapipe/models/knift_plu_index.pb](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_plu_index.pb)
     with the index file you generated, and update
-    [mediapipe/models/knift_labelmap.txt](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_labelmap.txt)
+    [mediapipe/models/knift_plu_labelmap.txt](https://github.com/google/mediapipe/tree/master/mediapipe/models/knift_plu_labelmap.txt)
     with your own template names.
 
 *   Step 4: Build and run the app using the same instructions in
