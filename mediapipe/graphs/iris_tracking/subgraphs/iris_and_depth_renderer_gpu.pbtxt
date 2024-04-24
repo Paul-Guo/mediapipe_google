@@ -12,7 +12,6 @@ input_stream: "IRIS_LANDMARKS_RIGHT:right_iris_landmarks"
 input_stream: "NORM_RECT:rect"
 input_stream: "LEFT_EYE_RECT:left_eye_rect_from_landmarks"
 input_stream: "RIGHT_EYE_RECT:right_eye_rect_from_landmarks"
-input_side_packet: "FOCAL_LENGTH:focal_length_pixel"
 output_stream: "IRIS_LANDMARKS:iris_landmarks"
 output_stream: "IMAGE:output_image"
 
@@ -211,7 +210,6 @@ node {
   calculator: "IrisToDepthCalculator"
   input_stream: "IRIS:iris_landmarks"
   input_stream: "IMAGE_SIZE:image_size"
-  input_side_packet: "FOCAL_LENGTH:focal_length_pixel"
   output_stream: "LEFT_IRIS_DEPTH_MM:left_iris_depth_mm"
   output_stream: "RIGHT_IRIS_DEPTH_MM:right_iris_depth_mm"
 }
