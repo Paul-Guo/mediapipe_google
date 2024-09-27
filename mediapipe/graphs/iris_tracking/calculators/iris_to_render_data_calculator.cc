@@ -191,7 +191,12 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
   lineFrameIndex = "Frame Index : ";
   absl::StrAppend(&lineFrameIndex,
   " index=",
-  frame_index
+  frame_index,
+  ", x=",
+  image_size.first,
+  ", y=",
+  image_size.second,
+  ","
   );
   outfile << lineFrameIndex;
   outfile << "\n";
