@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "absl/strings/str_cat.h"
+#include "absl/log/absl_log.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/landmark.pb.h"
 #include "mediapipe/framework/port/ret_check.h"
@@ -23,6 +24,9 @@
 #include "mediapipe/graphs/iris_tracking/calculators/iris_to_render_data_calculator.pb.h"
 #include "mediapipe/util/color.pb.h"
 #include "mediapipe/util/render_data.pb.h"
+#include <iostream>
+#include <fstream>
+#include <chrono>
 
 namespace mediapipe {
 
@@ -38,6 +42,14 @@ constexpr float kFontHeightScale = 1.5f;
 constexpr int kNumIrisLandmarksPerEye = 5;
 // TODO: Source.
 constexpr float kIrisSizeInMM = 11.8;
+
+// output file
+auto now = std::chrono::system_clock::now();
+auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+std::string directory = "/Users/guohongcheng/Downloads/mp_py/output/strabismus_source/iris_outputs";
+std::string filename = absl::StrCat(directory, "/", timestamp, ".txt");
+std::ofstream outfile(filename);
+int frame_index = 0;
 
 inline void SetColor(RenderAnnotation* annotation, const Color& color) {
   annotation->mutable_color()->set_r(color.r());
@@ -175,6 +187,16 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
   auto render_data = absl::make_unique<RenderData>();
   auto left_iris = absl::make_unique<NormalizedLandmarkList>();
   auto right_iris = absl::make_unique<NormalizedLandmarkList>();
+  std::string lineFrameIndex;
+  lineFrameIndex = "Frame Index : ";
+  absl::StrAppend(&lineFrameIndex,
+  " index=",
+  frame_index
+  );
+  outfile << lineFrameIndex;
+  outfile << "\n";
+  outfile.flush();
+  frame_index ++;
   GetLeftIris(iris_landmarks, left_iris.get());
   GetRightIris(iris_landmarks, right_iris.get());
 
@@ -284,6 +306,34 @@ void IrisToRenderDataCalculator::GetLeftIris(const NormalizedLandmarkList& lds,
   *iris->add_landmark() = lds.landmark(4);
   *iris->add_landmark() = lds.landmark(3);
   *iris->add_landmark() = lds.landmark(1);
+  std::string line;
+  line = "Left Iris : ";
+  absl::StrAppend(&line,
+  " center=(",
+  lds.landmark(0).x(), ",",
+  lds.landmark(0).y(), ",",
+  lds.landmark(0).z(), "),",
+  " top=(",
+  lds.landmark(2).x(), ",",
+  lds.landmark(2).y(), ",",
+  lds.landmark(2).z(), "),",
+  " bottom=(",
+  lds.landmark(4).x(), ",",
+  lds.landmark(4).y(), ",",
+  lds.landmark(4).z(), "),",
+  " left=(",
+  lds.landmark(3).x(), ",",
+  lds.landmark(3).y(), ",",
+  lds.landmark(3).z(), "),",
+  " right=(",
+  lds.landmark(1).x(), ",",
+  lds.landmark(1).y(), ",",
+  lds.landmark(1).z(), "),"
+  );
+  outfile << line;
+  outfile << "\n";
+  outfile.flush();
+//  ABSL_LOG(INFO) << line;
 }
 
 void IrisToRenderDataCalculator::GetRightIris(const NormalizedLandmarkList& lds,
@@ -294,6 +344,34 @@ void IrisToRenderDataCalculator::GetRightIris(const NormalizedLandmarkList& lds,
   *iris->add_landmark() = lds.landmark(9);
   *iris->add_landmark() = lds.landmark(6);
   *iris->add_landmark() = lds.landmark(8);
+  std::string line;
+  line = "Right Iris : ";
+  absl::StrAppend(&line,
+  " center=(",
+  lds.landmark(5).x(), ",",
+  lds.landmark(5).y(), ",",
+  lds.landmark(5).z(), "),",
+  " top=(",
+  lds.landmark(7).x(), ",",
+  lds.landmark(7).y(), ",",
+  lds.landmark(7).z(), "),",
+  " bottom=(",
+  lds.landmark(9).x(), ",",
+  lds.landmark(9).y(), ",",
+  lds.landmark(9).z(), "),",
+  " left=(",
+  lds.landmark(6).x(), ",",
+  lds.landmark(6).y(), ",",
+  lds.landmark(6).z(), "),",
+  " right=(",
+  lds.landmark(8).x(), ",",
+  lds.landmark(8).y(), ",",
+  lds.landmark(8).z(), "),"
+  );
+  outfile << line;
+  outfile << "\n";
+  outfile.flush();
+//  ABSL_LOG(INFO) << line;
 }
 
 RenderAnnotation* IrisToRenderDataCalculator::AddOvalRenderData(
