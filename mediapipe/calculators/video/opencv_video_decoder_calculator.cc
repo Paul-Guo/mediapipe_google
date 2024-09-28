@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 
+#include "absl/strings/str_cat.h"
 #include "absl/log/absl_log.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/image_format.pb.h"
@@ -24,6 +25,9 @@
 #include "mediapipe/framework/port/opencv_video_inc.h"
 #include "mediapipe/framework/port/status.h"
 #include "mediapipe/framework/tool/status_util.h"
+#include <iostream>
+#include <fstream>
+#include <chrono>
 
 namespace mediapipe {
 
@@ -33,6 +37,14 @@ constexpr char kSavedAudioPathTag[] = "SAVED_AUDIO_PATH";
 constexpr char kVideoPrestreamTag[] = "VIDEO_PRESTREAM";
 constexpr char kVideoTag[] = "VIDEO";
 constexpr char kInputFilePathTag[] = "INPUT_FILE_PATH";
+
+// output file
+auto now = std::chrono::system_clock::now();
+auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+std::string directory = "/Users/guohongcheng/Downloads/mp_py/output/strabismus_source/iris_outputs";
+std::string filename = absl::StrCat(directory, "/iris_frame_index_", timestamp, ".txt");
+std::ofstream outfile(filename);
+int frame_index = 0;
 
 // cv::VideoCapture set data type to unsigned char by default. Therefore, the
 // image format is only related to the number of channles the cv::Mat has.
@@ -215,11 +227,29 @@ class OpenCvVideoDecoderCalculator : public CalculatorBase {
     }
     // If the timestamp of the current frame is not greater than the one of the
     // previous frame, the new frame will be discarded.
+    int decoded = 0;
     if (prev_timestamp_ < timestamp) {
       cc->Outputs().Tag(kVideoTag).Add(image_frame.release(), timestamp);
       prev_timestamp_ = timestamp;
       decoded_frames_++;
+      decoded = 1;
     }
+    std::string lineFrameIndex;
+    lineFrameIndex = "Add Frame Index : ";
+    absl::StrAppend(&lineFrameIndex,
+    " index=",
+    frame_index,
+    ", ms=",
+    timestamp.Microseconds(),
+    ", decoded=",
+    decoded,
+    ","
+    );
+    outfile << lineFrameIndex;
+    outfile << "\n";
+    outfile.flush();
+//    ABSL_LOG(INFO) << lineFrameIndex;
+    frame_index ++;
 
     return absl::OkStatus();
   }

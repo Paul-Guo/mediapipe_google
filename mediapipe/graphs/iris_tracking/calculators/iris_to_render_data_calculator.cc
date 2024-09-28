@@ -47,7 +47,7 @@ constexpr float kIrisSizeInMM = 11.8;
 auto now = std::chrono::system_clock::now();
 auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 std::string directory = "/Users/guohongcheng/Downloads/mp_py/output/strabismus_source/iris_outputs";
-std::string filename = absl::StrCat(directory, "/", timestamp, ".txt");
+std::string filename = absl::StrCat(directory, "/iris_left_right_", timestamp, ".txt");
 std::ofstream outfile(filename);
 int frame_index = 0;
 
@@ -201,6 +201,7 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
   outfile << lineFrameIndex;
   outfile << "\n";
   outfile.flush();
+//  ABSL_LOG(INFO) << lineFrameIndex;
   frame_index ++;
   GetLeftIris(iris_landmarks, left_iris.get());
   GetRightIris(iris_landmarks, right_iris.get());

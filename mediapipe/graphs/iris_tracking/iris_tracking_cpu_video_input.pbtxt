@@ -4,7 +4,7 @@
 # max_queue_size limits the number of packets enqueued on any input stream
 # by throttling inputs to the graph. This makes the graph only process one
 # frame per time.
-max_queue_size: 2
+max_queue_size: 1
 
 # Decodes an input video file into images and a video header.
 node {
