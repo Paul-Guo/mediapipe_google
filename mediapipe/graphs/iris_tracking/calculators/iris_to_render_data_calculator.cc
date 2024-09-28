@@ -196,6 +196,8 @@ absl::Status IrisToRenderDataCalculator::Process(CalculatorContext* cc) {
   image_size.first,
   ", y=",
   image_size.second,
+  ", ms=",
+  cc->InputTimestamp().Microseconds(),
   ","
   );
   outfile << lineFrameIndex;
