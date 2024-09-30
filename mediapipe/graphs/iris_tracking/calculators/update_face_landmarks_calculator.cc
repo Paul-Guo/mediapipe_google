@@ -13,14 +13,26 @@
 #include <memory>
 
 #include "absl/strings/str_cat.h"
+#include "absl/log/absl_log.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/landmark.pb.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include <iostream>
+#include <fstream>
+#include <chrono>
 
 namespace mediapipe {
 
 namespace {
+
+// output file
+auto now = std::chrono::system_clock::now();
+auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+std::string directory = "/Users/guohongcheng/Downloads/mp_py/output/strabismus_source/iris_outputs";
+std::string filename = absl::StrCat(directory, "/iris_face_update_", timestamp, ".txt");
+std::ofstream outfile(filename);
+int frame_index = 0;
 
 constexpr char kFaceLandmarksTag[] = "FACE_LANDMARKS";
 constexpr char kNewEyeLandmarksTag[] = "NEW_EYE_LANDMARKS";
@@ -247,6 +259,16 @@ absl::Status UpdateFaceLandmarksCalculator::Process(CalculatorContext* cc) {
   RET_CHECK_EQ(new_eye_landmarks.landmark_size(), kNumEyeLandmarks)
       << "Wrong number of face landmarks";
 
+  std::string lineFrameIndex;
+  lineFrameIndex = "Update Frame Index : ";
+  absl::StrAppend(&lineFrameIndex,
+  " index=",
+  frame_index,
+  ", ms=",
+  cc->InputTimestamp().Microseconds(),
+  "_start_ids_"
+  );
+
   auto refined_face_landmarks =
       absl::make_unique<NormalizedLandmarkList>(face_landmarks);
   for (int i = 0; i < kNumEyeLandmarks; ++i) {
@@ -257,10 +279,28 @@ absl::Status UpdateFaceLandmarksCalculator::Process(CalculatorContext* cc) {
     refined_face_landmarks->mutable_landmark(id)->set_z(refined_ld.z());
     refined_face_landmarks->mutable_landmark(id)->set_visibility(
         refined_ld.visibility());
+    absl::StrAppend(&lineFrameIndex,
+    "_row_id_ id=",
+    id,
+    ", x=",
+    refined_ld.x(),
+    ", y=",
+    refined_ld.y(),
+    ", z=",
+    refined_ld.z(),
+    ","
+    );
   }
   cc->Outputs()
       .Tag(kUpdatedFaceLandmarksTag)
       .Add(refined_face_landmarks.release(), cc->InputTimestamp());
+
+
+  outfile << lineFrameIndex;
+  outfile << "\n";
+  outfile.flush();
+//  ABSL_LOG(INFO) << lineFrameIndex;
+  frame_index ++;
 
   return absl::OkStatus();
 }
